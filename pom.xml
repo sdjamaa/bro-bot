@@ -6,6 +6,14 @@
   <artifactId>bro-server</artifactId>
   <version>1.0-SNAPSHOT</version>
 
+  <repositories>
+    <repository>
+      <id>twitter-repo</id>
+      <name>twitter-repo</name>
+      <url>http://maven.twttr.com/</url>
+    </repository>
+  </repositories>
+
   <properties>
     <maven.compiler.source>1.7</maven.compiler.source>
     <maven.compiler.target>1.7</maven.compiler.target>
