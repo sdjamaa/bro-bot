@@ -14,13 +14,6 @@ class BroController extends Controller {
     parse(jsonStr).extract[Map[String, Any]]
   }
 
-  get("/webhook") { request: Request =>
-    request.params.get("hub.mode") match {
-      case Some("subscribe") => ???
-      case _ => response.badRequest
-    }
-  }
-
   post("/webhook") { request: Request =>
     val jsonMap = jsonStrToMap(request.contentString)
 
