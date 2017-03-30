@@ -60,6 +60,14 @@
       <version>2.1.10</version>
     </dependency>
 
+    <!-- test dependencies -->
+    <dependency>
+      <groupId>org.scalatest</groupId>
+      <artifactId>scalatest_2.10</artifactId>
+      <scope>test</scope>
+      <version>3.0.0</version>
+    </dependency>
+
   </dependencies>
 
   <build>
