@@ -2,13 +2,14 @@ package com.criteo.bro.service
 
 import com.criteo.bro.Config
 import com.criteo.bro.model._
+import com.criteo.bro.service.CriteoMessengerService.Product
 import com.twitter.finagle.builder.ClientBuilder
 import com.twitter.finagle.http.Method.Post
 import com.twitter.finagle.http.{Http, Request}
 import com.twitter.finatra.http.response.ResponseBuilder
-
 import org.json4s._
-import org.json4s.jackson.Serialization.{read,write}
+import org.json4s.jackson.Serialization.write
+import org.json4s.FieldSerializer._
 
 object PageSubscriptionService {
 
@@ -16,7 +17,7 @@ object PageSubscriptionService {
     println(s"Watermark: ${readMessage.get("watermark").get} || seq: ${readMessage.get("seq").get}")
   }
 
-  def respondWithText(recipientId: String, msg: String) = {
+  def respondWithGenericTemplate(recipientId: String, msg: String, elts: List[FacebookGenericElement]) = {
     val client = ClientBuilder()
       .codec(Http())
       .hosts(Config.FACEBOOK_URL)
@@ -25,22 +26,6 @@ object PageSubscriptionService {
 
     val req = Request(Post, s"/me/messages?access_token=${Config.PAGE_ACCESS_TOKEN}")
 
-    val elts: List[FacebookGenericElement] = List(FacebookGenericElement(
-      title = "product_title",
-      subtitle = msg,
-      image_url = "https://upload.wikimedia.org/wikipedia/en/thumb/5/53/Arsenal_FC.svg/870px-Arsenal_FC.svg.png",
-      default_action = DefaultAction(actiontype = "web_url", title = "button", url = "http://www.criteo.com/"),
-      buttons = List(FacebookButton(btntype = "payment", title = "Please buy", payload = "LOLILOL", payment_summary =
-        PaymentSummary(
-          currency = "USD",
-          is_test_payment = true,
-          payment_type = "FIXED_AMOUNT",
-          merchant_name = "Criteo merchant",
-          requested_user_info = List(RequestedUserInfo(shipping_address = "325 Lytton Av", contact_name = "Yacine Achiakh", contact_phone = "555-555-5555", contact_email = "y.achiakh@criteo.com")),
-          price_list = List(Price(label = "product1", amount = "12.34"))
-        )))
-    ))
-
     val msgResponse = FacebookResponse(
       recipient = Recipient(id = recipientId),
       message = FacebookMessage(attachment = FacebookAttachment(
@@ -48,7 +33,12 @@ object PageSubscriptionService {
         payload = FacebookPayload(template_type = "generic", elements = elts)
       ))
     )
-    implicit val formats = DefaultFormats
+
+    val renameDefaultActionType = FieldSerializer[DefaultAction](renameTo("actiontype", "type"), renameFrom("type", "actiontype"))
+    val renameFacebookButtonType = FieldSerializer[FacebookButton](renameTo("btntype", "type"), renameFrom("type", "btntype"))
+    val renameAttachmentType = FieldSerializer[FacebookAttachment](renameTo("atttype", "type"), renameFrom("type", "atttype"))
+
+    implicit val formats = DefaultFormats + renameDefaultActionType + renameFacebookButtonType + renameAttachmentType
 
     req.contentString_=(write(msgResponse))
     val f = client(req)
@@ -61,10 +51,35 @@ object PageSubscriptionService {
     }
   }
 
+  def createFacebookElementFromProduct(products: Iterable[Product]) = {
+    for (product <- products) yield {
+      FacebookGenericElement(
+        title = s"${product.id}",
+        subtitle = "<foobar>",
+        image_url = product.image,
+        default_action = DefaultAction(actiontype = "web_url", title = "button", url = product.url),
+        buttons = List(FacebookButton(btntype = "payment", title = "Please buy", payload = "LOLILOL", payment_summary =
+          PaymentSummary(
+            currency = "USD", // TODO FIXME LOL MDR
+            is_test_payment = true,
+            payment_type = "FIXED_AMOUNT",
+            merchant_name = "Criteo merchant",
+            requested_user_info = List(RequestedUserInfo(shipping_address = "325 Lytton Av", contact_name = "Yacine Achiakh", contact_phone = "555-555-5555", contact_email = "y.achiakh@criteo.com")),
+            price_list = List(Price(label = s"${product.id}", amount = s"${product.price}"))
+          )))
+      )
+    }
+  }
+
   def handleMessage(recipientId: String, message: Map[String, Any]) = {
     val msg = message.get("text").get.asInstanceOf[String]
 
-    respondWithText(recipientId, msg.substring(0, Math.min(19, msg.length - 1)))
+    // call to ES
+    val products = CriteoMessengerService.searchProducts(1, msg)
+
+    val genericElts = createFacebookElementFromProduct(products).toList
+
+    respondWithGenericTemplate(recipientId, msg.substring(0, Math.min(19, msg.length - 1)), genericElts)
   }
 
   def handlePageSubscription(response: ResponseBuilder, entries: List[Map[String, Any]]) = {
