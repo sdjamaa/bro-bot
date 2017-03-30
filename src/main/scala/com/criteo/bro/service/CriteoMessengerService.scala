@@ -1,6 +1,10 @@
 package com.criteo.bro.service
 
+import wabisabi.Client
+
 object CriteoMessengerService {
+
+  private val esClient = new Client("http://localhost:9200")
 
   case class Product(id: Int, url: String, image: String, price: Double)
 
