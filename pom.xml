@@ -1,0 +1,260 @@
+<?xml version="1.0"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.criteo.bro</groupId>
+  <artifactId>bro-server</artifactId>
+  <version>1.0-SNAPSHOT</version>
+
+  <properties>
+    <maven.compiler.source>1.7</maven.compiler.source>
+    <maven.compiler.target>1.7</maven.compiler.target>
+    <encoding>UTF-8</encoding>
+    <scala.version.short>2.10</scala.version.short>
+    <scala.version>${scala.version.short}.6</scala.version>
+    <finatra.version>2.1.6</finatra.version>
+
+    <mainClass>com.criteo.bro.BroServerMain</mainClass>
+    <buildPropertiesPackage>com.criteo.bro</buildPropertiesPackage>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.json4s</groupId>
+      <artifactId>json4s-jackson_${scala.version.short}</artifactId>
+      <version>3.2.11</version>
+    </dependency>
+
+    <!-- Scala -->
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala-library</artifactId>
+      <version>${scala.version}</version>
+    </dependency>
+
+    <!-- Finatra -->
+    <dependency>
+      <groupId>com.twitter.finatra</groupId>
+      <artifactId>finatra-http_${scala.version.short}</artifactId>
+      <version>${finatra.version}</version>
+    </dependency>
+
+    <!-- Logback -->
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.1.7</version>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <finalName>${project.artifactId}</finalName>
+
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <resource>
+        <directory>src/main/webapp</directory>
+      </resource>
+    </resources>
+
+    <testResources>
+      <testResource>
+        <directory>config</directory>
+      </testResource>
+      <testResource>
+        <directory>src/test/resources</directory>
+      </testResource>
+      <testResource>
+        <directory>src/test/webapp</directory>
+      </testResource>
+    </testResources>
+
+    <plugins>
+      <plugin>
+        <groupId>net.alchim31.maven</groupId>
+        <artifactId>scala-maven-plugin</artifactId>
+        <version>3.2.0</version>
+        <executions>
+          <execution>
+            <id>scala-compile-first</id>
+            <phase>process-resources</phase>
+            <configuration>
+              <recompileMode>incremental</recompileMode>
+              <useZincServer>true</useZincServer>
+              <args>
+                <param>-language:_</param>
+                <param>-g:vars</param>
+                <param>-unchecked</param>
+                <param>-deprecation</param>
+                <param>-encoding</param>
+                <param>utf8</param>
+              </args>
+              <javacArgs>
+                <javacArg>-target</javacArg>
+                <javacArg>7</javacArg>
+                <javacArg>-source</javacArg>
+                <javacArg>7</javacArg>
+              </javacArgs>
+            </configuration>
+            <goals>
+              <goal>add-source</goal>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>scala-test-compile</id>
+            <phase>process-test-resources</phase>
+            <configuration>
+              <args>
+                <param>-language:_</param>
+                <param>-g:vars</param>
+                <param>-unchecked</param>
+                <param>-deprecation</param>
+                <param>-encoding</param>
+                <param>utf8</param>
+              </args>
+              <javacArgs>
+                <javacArg>-target</javacArg>
+                <javacArg>7</javacArg>
+                <javacArg>-source</javacArg>
+                <javacArg>7</javacArg>
+              </javacArgs>
+            </configuration>
+            <goals>
+              <goal>testCompile</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <jvmArgs>
+            <jvmArg>-Xmx2G</jvmArg>
+          </jvmArgs>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>2.4</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.18.1</version>
+        <configuration>
+          <skipTests>true</skipTests>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>2.2.1</version>
+        <dependencies>
+          <dependency>
+            <groupId>com.twitter</groupId>
+            <artifactId>package-dist</artifactId>
+            <version>0.0.6</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <descriptorRefs>
+            <descriptorRef>package-dist</descriptorRef>
+          </descriptorRefs>
+          <archive>
+            <manifest>
+              <mainClass>${mainClass}</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+        <executions>
+          <execution>
+            <id>make-assembly</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>1.4.0</version>
+        <configuration>
+          <mainClass>${mainClass}</mainClass>
+          <systemProperties>
+            <systemProperty>
+              <key>log.access.output</key>
+              <value>/dev/stdout</value>
+            </systemProperty>
+            <systemProperty>
+              <key>log.service.output</key>
+              <value>/dev/stdout</value>
+            </systemProperty>
+          </systemProperties>
+          <arguments>
+            <argument>-log.output=/dev/stdout</argument>
+            <argument>-http.port=:8080</argument>
+            <argument>-admin.port=:8081</argument>
+          </arguments>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.5</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <addClasspath>true</addClasspath>
+              <mainClass>${mainClass}</mainClass>
+              <classpathPrefix>libs/</classpathPrefix>
+              <classpathLayoutType>custom</classpathLayoutType>
+              <customClasspathLayout>
+                ${artifact.groupId}-${artifact.artifactId}-${artifact.version}${dashClassifier?}.${artifact.extension}
+              </customClasspathLayout>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+      <!-- <plugin>
+        <groupId>com.twitter</groupId>
+        <artifactId>maven-build-properties-plugin</artifactId>
+        <version>0.0.2</version>
+        <configuration>
+          <buildPropertiesPackage>${buildPropertiesPackage}</buildPropertiesPackage>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin> -->
+    </plugins>
+  </build>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>twitter-repo</id>
+      <name>twitter-repo</name>
+      <url>https://maven.twttr.com</url>
+    </pluginRepository>
+  </pluginRepositories>
+
+</project>
