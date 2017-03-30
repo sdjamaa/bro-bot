@@ -1,5 +1,6 @@
 package com.criteo.bro.controller
 
+import com.criteo.bro.Config
 import com.criteo.bro.service.PageSubscriptionService
 import com.twitter.finagle.http.Request
 import com.twitter.finatra.http.Controller
@@ -12,6 +13,15 @@ class BroController extends Controller {
     implicit val formats = org.json4s.DefaultFormats
 
     parse(jsonStr).extract[Map[String, Any]]
+  }
+
+  get("/webhook") { request: Request =>
+    if ((request.params.get("hub.mode") == "subscribe") && (request.params("hub.verify_token") == Config.VALIDATION_TOKEN)) {
+      response.ok(request.params.get("hub.challenge"))
+    } else {
+      println("Failed validation. Make sure the validation tokens match.")
+      response.forbidden
+    }
   }
 
   post("/webhook") { request: Request =>
