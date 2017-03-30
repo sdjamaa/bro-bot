@@ -5,11 +5,11 @@ object KeywordFilter {
   val phraseRegex = phrases.tail.foldLeft(phrases.head)((a, b) => s"$a|$b")
   val phraseKeywordRegex = s"""($phraseRegex)\\s+(a\\s+)?(([a-z]+ )*[a-z]+)""".r
 
-  def extractKeywords(message: String): List[String] = {
+  def extractKeywords(message: String): String = {
     val input = message.replaceAll("""[\p{Punct}]""", "")
     input match {
-      case phraseKeywordRegex(_, _, keywords, _) => keywords.split(" ").toList
-      case _ => List.empty
+      case phraseKeywordRegex(_, _, keywords, _) => keywords
+      case _ => ""
     }
   }
 }
