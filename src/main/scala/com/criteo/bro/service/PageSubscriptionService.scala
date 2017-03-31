@@ -54,18 +54,18 @@ object PageSubscriptionService {
   def createFacebookElementFromProduct(products: Iterable[Product]) = {
     for (product <- products) yield {
       FacebookGenericElement(
-        title = s"${product.id}",
+        title = s"${product.title}",
         subtitle = "<foobar>",
         image_url = product.image,
         default_action = DefaultAction(actiontype = "web_url", title = "button", url = product.url),
         buttons = List(FacebookButton(btntype = "payment", title = "Please buy", payload = "LOLILOL", payment_summary =
           PaymentSummary(
-            currency = "USD", // TODO FIXME LOL MDR
+            currency = product.currency,
             is_test_payment = true,
             payment_type = "FIXED_AMOUNT",
             merchant_name = "Criteo merchant",
             requested_user_info = List(RequestedUserInfo(shipping_address = "325 Lytton Av", contact_name = "Yacine Achiakh", contact_phone = "555-555-5555", contact_email = "y.achiakh@criteo.com")),
-            price_list = List(Price(label = s"${product.id}", amount = s"${product.price}"))
+            price_list = List(Price(label = s"${product.title}", amount = s"${product.price}"))
           )))
       )
     }

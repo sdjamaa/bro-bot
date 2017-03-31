@@ -10,12 +10,6 @@ import org.json4s.jackson.JsonMethods._
 
 class BroController extends Controller {
 
-  def jsonStrToMap(jsonStr: String): Map[String, Any] = {
-    implicit val formats = org.json4s.DefaultFormats
-
-    parse(jsonStr).extract[Map[String, Any]]
-  }
-
   get("/webhook") { request: Request =>
     if ((request.params.get("hub.mode").get == "subscribe") &&
       (request.params.get("hub.verify_token").get == Config.VALIDATION_TOKEN)) {
