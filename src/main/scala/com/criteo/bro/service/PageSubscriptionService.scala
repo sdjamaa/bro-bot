@@ -1,23 +1,29 @@
 package com.criteo.bro.service
 
+import java.util.concurrent.{ScheduledThreadPoolExecutor, TimeUnit}
+
 import com.criteo.bro.Config
 import com.criteo.bro.model._
 import com.criteo.bro.service.CriteoMessengerService.Product
+import com.twitter.concurrent.NamedPoolThreadFactory
 import com.twitter.finagle.builder.ClientBuilder
-import com.twitter.finagle.http.{Http, Request, RequestBuilder}
+import com.twitter.finagle.http.{Http, RequestBuilder}
 import com.twitter.finatra.http.response.ResponseBuilder
-import com.twitter.io.Buf.{ByteArray, Utf8}
+import com.twitter.io.Buf.Utf8
 import org.json4s._
 import org.json4s.jackson.Serialization.write
 import org.json4s.FieldSerializer._
 
 object PageSubscriptionService {
 
+  val delayer: ScheduledThreadPoolExecutor =
+    new ScheduledThreadPoolExecutor(1, new NamedPoolThreadFactory("PushNotifications-delayer", true))
+
   def handleReadMessage(readMessage: Map[String, Any]) = {
     println(s"Watermark: ${readMessage.get("watermark").get} || seq: ${readMessage.get("seq").get}")
   }
 
-  def respondWithGenericTemplate(recipientId: String, msg: String, elts: List[FacebookGenericElement]) = {
+  def respondWithGenericTemplate(recipientId: String, msg: String, elts: List[FacebookGenericElement], subscribeToNotifications: Boolean) = {
     val client = ClientBuilder()
       .codec(Http())
       .hosts(Config.FACEBOOK_URL)
@@ -51,6 +57,10 @@ object PageSubscriptionService {
     // Handle the response:
     f onSuccess { res =>
       println("got response", res)
+      if (subscribeToNotifications)
+        delayer.schedule(new Runnable() {
+          override def run(): Unit = sendMessage(recipientId, msg, false)
+        }, 10, TimeUnit.SECONDS)
     } onFailure { exc =>
       println("failed :-(", exc)
     }
@@ -68,15 +78,19 @@ object PageSubscriptionService {
     }
   }
 
-  def handleMessage(recipientId: String, message: Map[String, Any]) = {
-    val msg = message.get("text").get.asInstanceOf[String]
-
+  def sendMessage(recipientId: String, msg: String, subscribeToPush: Boolean) = {
     // call to ES
     val products = CriteoMessengerService.searchProducts(1, msg)
 
     val genericElts = createFacebookElementFromProduct(products).toList
 
-    respondWithGenericTemplate(recipientId, msg.substring(0, Math.min(19, msg.length - 1)), genericElts)
+    respondWithGenericTemplate(recipientId, msg.substring(0, Math.min(19, msg.length - 1)), genericElts, subscribeToPush)
+  }
+
+  def handleMessage(recipientId: String, message: Map[String, Any]) = {
+    val msg = message.get("text").get.asInstanceOf[String]
+
+    sendMessage(recipientId, msg, true)
   }
 
   def handlePageSubscription(response: ResponseBuilder, entries: List[Map[String, Any]]) = {
