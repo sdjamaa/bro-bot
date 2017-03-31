@@ -1,8 +1,7 @@
 package com.criteo.bro.service
 
 import java.util.concurrent.{ScheduledThreadPoolExecutor, TimeUnit}
-
-import com.criteo.bro.Config
+import com.criteo.bro.{Config, SpeechToText}
 import com.criteo.bro.model._
 import com.criteo.bro.service.CriteoMessengerService.Product
 import com.twitter.concurrent.NamedPoolThreadFactory
@@ -82,7 +81,21 @@ object PageSubscriptionService {
   }
 
   def handleMessage(recipientId: String, message: Map[String, Any]) = {
-    val msg = message.get("text").get.asInstanceOf[String]
+
+    val maybeAttachments = message.get("attachments").asInstanceOf[Option[Map[String, Any]]].getOrElse(Map.empty)
+
+    var msg: String = ""
+
+    if (maybeAttachments.size > 0) {
+      val attachmentType = maybeAttachments.get("type").get.asInstanceOf[String]
+      if (attachmentType == "audio") {
+        val payload = maybeAttachments.get("payload").get.asInstanceOf[Map[String, String]]
+        val audioUrl = payload.get("url").get
+        msg = SpeechToText.convertAudioUrlToText(audioUrl)
+      }
+    } else {
+      msg = message.get("text").get.asInstanceOf[String]
+    }
 
     // call to ES
     val products = CriteoMessengerService.searchProducts(1, msg).toList
