@@ -61,15 +61,9 @@
     </dependency>
 
     <dependency>
-      <groupId>com.google.cloud</groupId>
-      <artifactId>google-cloud-speech</artifactId>
-      <version>0.10.0-alpha</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>18.0</version>
+      <groupId>com.ibm.watson.developer_cloud</groupId>
+      <artifactId>speech-to-text</artifactId>
+      <version>3.7.0</version>
     </dependency>
 
     <!-- test dependencies -->
