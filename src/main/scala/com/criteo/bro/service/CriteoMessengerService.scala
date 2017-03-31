@@ -8,11 +8,11 @@ import scala.concurrent.Future
 
 object CriteoMessengerService {
 
-  private val esClient = new Client("http://172.28.46.136:9200")
+  private val esClient = new Client("http://localhost:9200")
 
   case class Product(id: Int, title: String, url: String, image: String, price: Double, currency: String)
 
-  /*def searchProducts(partnerId: Int, query: String): Iterable[Product] = {
+  def searchProducts(partnerId: Int, query: String): Iterable[Product] = {
     println(query)
     val keywords = KeywordFilter.extractKeywords(query)
     println(keywords)
@@ -30,9 +30,9 @@ object CriteoMessengerService {
       p.get("adwords_product_price_currency").get.asInstanceOf[String]))
     println(products)
     products
-  }*/
+  }
 
-  def searchProducts(partnerId: Int, query: String): Iterable[Product] = {
+  /*def searchProducts(partnerId: Int, query: String): Iterable[Product] = {
     List(Product(
       id = 10,
       url = "http://www.criteo.com/",
@@ -40,7 +40,7 @@ object CriteoMessengerService {
       price = 24.3,
       currency = "EUR",
       title = "DAT PRODUCT"))
-  }
+  }*/
 
   def viewProduct(partnerId: Int, productId: Int) = ???
 

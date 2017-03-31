@@ -25,8 +25,6 @@ object PageSubscriptionService {
       .tlsWithoutValidation()
       .build()
 
-      //Request(Post, s"/me/messages?access_token=${Config.PAGE_ACCESS_TOKEN}")
-
     val msgResponse = FacebookResponse(
       recipient = Recipient(id = recipientId),
       message = FacebookMessage(attachment = FacebookAttachment(
@@ -48,7 +46,6 @@ object PageSubscriptionService {
       .url(s"https://${Config.FACEBOOK_URL}/me/messages?access_token=${Config.PAGE_ACCESS_TOKEN}")
       .buildPost(Utf8(contentStr))
 
-//    req.contentString_=(write(msgResponse))
     val f = client(req)
 
     // Handle the response:
