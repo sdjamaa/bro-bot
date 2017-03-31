@@ -60,6 +60,18 @@
       <version>2.1.10</version>
     </dependency>
 
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-speech</artifactId>
+      <version>0.10.0-alpha</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>18.0</version>
+    </dependency>
+
     <!-- test dependencies -->
     <dependency>
       <groupId>org.scalatest</groupId>
