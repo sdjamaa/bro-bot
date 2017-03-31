@@ -11,4 +11,10 @@ object BroTools {
 
     parse(jsonStr).extract[Map[String, Any]]
   }
+
+  def jsonStrToClass[A : Manifest](jsonStr: String): A = {
+    implicit val formats = org.json4s.DefaultFormats
+
+    parse(jsonStr).extract[A]
+  }
 }

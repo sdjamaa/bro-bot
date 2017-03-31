@@ -32,16 +32,6 @@ object CriteoMessengerService {
     products
   }
 
-  /*def searchProducts(partnerId: Int, query: String): Iterable[Product] = {
-    List(Product(
-      id = 10,
-      url = "http://www.criteo.com/",
-      image = "https://upload.wikimedia.org/wikipedia/en/thumb/5/53/Arsenal_FC.svg/870px-Arsenal_FC.svg.png",
-      price = 24.3,
-      currency = "EUR",
-      title = "DAT PRODUCT"))
-  }*/
-
   def viewProduct(partnerId: Int, productId: Int) = ???
 
   def viewHome(partnerId: Int) = ???

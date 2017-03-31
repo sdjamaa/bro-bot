@@ -23,7 +23,7 @@ object PageSubscriptionService {
     println(s"Watermark: ${readMessage.get("watermark").get} || seq: ${readMessage.get("seq").get}")
   }
 
-  def respondWithGenericTemplate(recipientId: String, msg: String, elts: List[FacebookGenericElement], subscribeToNotifications: Boolean) = {
+  def respondWithGenericTemplate(recipientId: String, elts: List[FacebookGenericElement]) = {
     val client = ClientBuilder()
       .codec(Http())
       .hosts(Config.FACEBOOK_URL)
@@ -57,16 +57,13 @@ object PageSubscriptionService {
     // Handle the response:
     f onSuccess { res =>
       println("got response", res)
-      if (subscribeToNotifications)
-        delayer.schedule(new Runnable() {
-          override def run(): Unit = sendMessage(recipientId, msg, false)
-        }, 10, TimeUnit.SECONDS)
+      RecipientCacheService.latestRecipient = recipientId
     } onFailure { exc =>
       println("failed :-(", exc)
     }
   }
 
-  def createFacebookElementFromProduct(products: Iterable[Product]) = {
+  def createFacebookElementFromProduct(products: List[Product]) = {
     for (product <- products) yield {
       FacebookGenericElement(
         title = s"${product.title}",
@@ -78,19 +75,19 @@ object PageSubscriptionService {
     }
   }
 
-  def sendMessage(recipientId: String, msg: String, subscribeToPush: Boolean) = {
-    // call to ES
-    val products = CriteoMessengerService.searchProducts(1, msg)
+  def sendMessage(recipientId: String, products: List[Product]) = {
+    val genericElts = createFacebookElementFromProduct(products)
 
-    val genericElts = createFacebookElementFromProduct(products).toList
-
-    respondWithGenericTemplate(recipientId, msg.substring(0, Math.min(19, msg.length - 1)), genericElts, subscribeToPush)
+    respondWithGenericTemplate(recipientId, genericElts)
   }
 
   def handleMessage(recipientId: String, message: Map[String, Any]) = {
     val msg = message.get("text").get.asInstanceOf[String]
 
-    sendMessage(recipientId, msg, true)
+    // call to ES
+    val products = CriteoMessengerService.searchProducts(1, msg).toList
+
+    sendMessage(recipientId, products)
   }
 
   def handlePageSubscription(response: ResponseBuilder, entries: List[Map[String, Any]]) = {

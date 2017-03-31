@@ -2,10 +2,9 @@ package com.criteo.bro.controller
 
 import com.criteo.bro.BroTools
 import com.criteo.bro.Config
-import com.criteo.bro.service.PageSubscriptionService
+import com.criteo.bro.service.{CriteoMessengerService, PageSubscriptionService, RecipientCacheService}
 import com.twitter.finagle.http.Request
 import com.twitter.finatra.http.Controller
-import org.json4s.jackson.JsonMethods._
 
 
 class BroController extends Controller {
@@ -27,5 +26,15 @@ class BroController extends Controller {
       case Some("page") => PageSubscriptionService.handlePageSubscription(response, jsonMap.get("entry").get.asInstanceOf[List[Map[String, Any]]])
       case _ => response.ok
     }
+  }
+
+  post("/recommendation") { request: Request =>
+    val products = BroTools.jsonStrToClass[List[CriteoMessengerService.Product]](request.contentString)
+
+    if (RecipientCacheService.latestRecipient != "") {
+      PageSubscriptionService.sendMessage(RecipientCacheService.latestRecipient, products)
+    }
+
+    response.ok
   }
 }
