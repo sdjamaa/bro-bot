@@ -4,9 +4,9 @@ import com.criteo.bro.Config
 import com.criteo.bro.model._
 import com.criteo.bro.service.CriteoMessengerService.Product
 import com.twitter.finagle.builder.ClientBuilder
-import com.twitter.finagle.http.Method.Post
-import com.twitter.finagle.http.{Http, Request}
+import com.twitter.finagle.http.{Http, Request, RequestBuilder}
 import com.twitter.finatra.http.response.ResponseBuilder
+import com.twitter.io.Buf.{ByteArray, Utf8}
 import org.json4s._
 import org.json4s.jackson.Serialization.write
 import org.json4s.FieldSerializer._
@@ -22,9 +22,10 @@ object PageSubscriptionService {
       .codec(Http())
       .hosts(Config.FACEBOOK_URL)
       .hostConnectionLimit(1)
+      .tlsWithoutValidation()
       .build()
 
-    val req = Request(Post, s"/me/messages?access_token=${Config.PAGE_ACCESS_TOKEN}")
+      //Request(Post, s"/me/messages?access_token=${Config.PAGE_ACCESS_TOKEN}")
 
     val msgResponse = FacebookResponse(
       recipient = Recipient(id = recipientId),
@@ -40,7 +41,14 @@ object PageSubscriptionService {
 
     implicit val formats = DefaultFormats + renameDefaultActionType + renameFacebookButtonType + renameAttachmentType
 
-    req.contentString_=(write(msgResponse))
+    val contentStr = write(msgResponse)
+
+    val req = RequestBuilder()
+      .addHeader("Content-Type", "application/json")
+      .url(s"https://${Config.FACEBOOK_URL}/me/messages?access_token=${Config.PAGE_ACCESS_TOKEN}")
+      .buildPost(Utf8(contentStr))
+
+//    req.contentString_=(write(msgResponse))
     val f = client(req)
 
     // Handle the response:
@@ -55,18 +63,10 @@ object PageSubscriptionService {
     for (product <- products) yield {
       FacebookGenericElement(
         title = s"${product.title}",
-        subtitle = "<foobar>",
+        subtitle = s"${product.price} ${product.currency}",
         image_url = product.image,
-        default_action = DefaultAction(actiontype = "web_url", title = "button", url = product.url),
-        buttons = List(FacebookButton(btntype = "payment", title = "Please buy", payload = "LOLILOL", payment_summary =
-          PaymentSummary(
-            currency = product.currency,
-            is_test_payment = true,
-            payment_type = "FIXED_AMOUNT",
-            merchant_name = "Criteo merchant",
-            requested_user_info = List(RequestedUserInfo(shipping_address = "325 Lytton Av", contact_name = "Yacine Achiakh", contact_phone = "555-555-5555", contact_email = "y.achiakh@criteo.com")),
-            price_list = List(Price(label = s"${product.title}", amount = s"${product.price}"))
-          )))
+        default_action = DefaultAction(actiontype = "web_url", url = product.url),
+        buttons = List(FacebookButton(btntype = "web_url", title = "Buy", url = product.url))
       )
     }
   }
@@ -88,7 +88,7 @@ object PageSubscriptionService {
       messaging <- entry.get("messaging").get.asInstanceOf[List[Map[String, Any]]]
     } yield {
 
-      val recipientId = messaging.get("recipient").get.asInstanceOf[Map[String, String]].get("id").get
+      val recipientId = messaging.get("sender").get.asInstanceOf[Map[String, String]].get("id").get
 
       if (messaging.get("message").isDefined) {
         handleMessage(recipientId, messaging.get("message").get.asInstanceOf[Map[String, Any]])
